@@ -1,0 +1,113 @@
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Plus, Trash2 } from 'lucide-react';
+import NoteCard from '@/components/note-card';
+
+interface Note {
+  id: string;
+  text: string;
+  color: string;
+  timestamp: Date;
+}
+
+const COLORS = [
+  'bg-orange-200',
+  'bg-blue-200',
+  'bg-green-200',
+  'bg-pink-200',
+  'bg-purple-200',
+  'bg-yellow-200',
+  'bg-cyan-200',
+  'bg-rose-200',
+];
+
+export default function OneDay() {
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [input, setInput] = useState('');
+
+  const getRandomColor = () => {
+    return COLORS[Math.floor(Math.random() * COLORS.length)];
+  };
+
+  const addNote = () => {
+    if (input.trim() === '') return;
+
+    const newNote: Note = {
+      id: Date.now().toString(),
+      text: input,
+      color: getRandomColor(),
+      timestamp: new Date(),
+    };
+
+    setNotes([newNote, ...notes]);
+    setInput('');
+  };
+
+  const deleteNote = (id: string) => {
+    setNotes(notes.filter(note => note.id !== id));
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      addNote();
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-12">
+          <h1 className="text-5xl font-bold text-slate-900 mb-2 text-balance">
+            OneDay
+          </h1>
+          <p className="text-lg text-slate-600">
+            Capture your ideas and thoughts in one place
+          </p>
+        </div>
+
+        {/* Input Section */}
+        <div className="mb-8 flex gap-2">
+          <Input
+            type="text"
+            placeholder="What's on your mind today?"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            className="flex-1 h-12 text-base"
+          />
+          <Button
+            onClick={addNote}
+            size="lg"
+            className="bg-slate-900 hover:bg-slate-800 text-white px-6 h-12 flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Add
+          </Button>
+        </div>
+
+        {/* Notes Grid */}
+        {notes.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-xl text-slate-500">
+              Start by adding your first idea or note!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {notes.map((note) => (
+              <NoteCard
+                key={note.id}
+                note={note}
+                onDelete={deleteNote}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
