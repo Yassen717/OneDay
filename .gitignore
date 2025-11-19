@@ -1,0 +1,70 @@
+# Node
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+.next-static/
+out/
+# If you export static, keep 'out/' ignored. Remove if you want to track it.
+
+# Build outputs
+build/
+dist/
+coverage/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Logs & reports
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Caches
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+.stylelintcache
+
+# Package managers
+.pnp.cjs
+.pnp.loader.mjs
+.pnp.data.json
+.pnp.js
+.pnp/**
+
+# IDEs & Editors
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Images & analytics
+.vercel/
+
+# Misc
+*.swp
+*.swo
+*.tmp
+*.temp
+
+# Lockfiles (optional, uncomment to ignore if needed)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
