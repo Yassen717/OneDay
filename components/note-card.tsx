@@ -38,6 +38,8 @@ export default function NoteCard({ note, onDelete }: NoteCardProps) {
           variant="ghost"
           size="sm"
           onClick={() => onDelete(note.id)}
+          aria-label="Delete note"
+          title="Delete note"
           className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto text-slate-600 hover:text-red-600 hover:bg-white/50"
         >
           <Trash2 className="w-4 h-4" />
