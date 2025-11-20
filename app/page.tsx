@@ -73,7 +73,7 @@ export default function OneDay() {
     setNotes(notes.filter(note => note.id !== id));
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       addNote();
     }
@@ -94,12 +94,12 @@ export default function OneDay() {
 
         {/* Input Section */}
         <div className="mb-8 flex gap-2">
-          <Input
+            <Input
             type="text"
             placeholder="What's on your mind today?"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyDown}
             className="flex-1 h-12 text-base"
           />
           <Button
