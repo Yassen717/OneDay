@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2 } from 'lucide-react';
@@ -27,6 +27,29 @@ const COLORS = [
 export default function OneDay() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [input, setInput] = useState('');
+
+  // Load notes from localStorage on component mount
+  useEffect(() => {
+    const savedNotes = localStorage.getItem('oneday-notes');
+    if (savedNotes) {
+      try {
+        const parsedNotes = JSON.parse(savedNotes);
+        // Convert timestamp strings back to Date objects
+        const notesWithDates = parsedNotes.map((note: any) => ({
+          ...note,
+          timestamp: new Date(note.timestamp),
+        }));
+        setNotes(notesWithDates);
+      } catch (error) {
+        console.error('Failed to parse saved notes:', error);
+      }
+    }
+  }, []);
+
+  // Save notes to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('oneday-notes', JSON.stringify(notes));
+  }, [notes]);
 
   const getRandomColor = () => {
     return COLORS[Math.floor(Math.random() * COLORS.length)];

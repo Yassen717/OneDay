@@ -1545,6 +1545,10 @@
     background-color: var(--background);
   }
 
+  .bg-black {
+    background-color: var(--color-black);
+  }
+
   .bg-black\/50 {
     background-color: #00000080;
   }
