@@ -121,5 +121,35 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Use CSS fallback font variables in case next/font class isn't applied */
+    font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system,
+      'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Headings & typography improvements */
+  h1 {
+    @apply text-4xl md:text-5xl font-extrabold tracking-tight leading-tight;
+  }
+  h2 {
+    @apply text-2xl md:text-3xl font-semibold tracking-tight;
+  }
+  h3 {
+    @apply text-xl font-semibold;
+  }
+  p {
+    @apply text-base text-foreground leading-relaxed;
+  }
+  a {
+    @apply text-primary hover:underline;
+  }
+  /* Make content feel more readable on wide screens */
+  main, .container {
+    max-width: 72rem;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
