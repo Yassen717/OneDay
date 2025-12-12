@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2 } from 'lucide-react';
@@ -23,6 +24,8 @@ const COLORS = [
   'bg-cyan-200',
   'bg-rose-200',
 ];
+
+const MAX_NOTE_LENGTH = 500;
 
 export default function OneDay() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -48,19 +51,31 @@ export default function OneDay() {
 
   // Save notes to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('oneday-notes', JSON.stringify(notes));
+    try {
+      localStorage.setItem('oneday-notes', JSON.stringify(notes));
+    } catch (error) {
+      console.error('Failed to save notes to localStorage:', error);
+    }
   }, [notes]);
 
   const getRandomColor = () => {
     return COLORS[Math.floor(Math.random() * COLORS.length)];
   };
 
+  const sanitizeInput = (text: string): string => {
+    return text.trim().replace(/\s+/g, ' ');
+  };
+
   const addNote = () => {
-    if (input.trim() === '') return;
+    const sanitizedText = sanitizeInput(input);
+
+    // Validate input
+    if (sanitizedText === '') return;
+    if (sanitizedText.length > MAX_NOTE_LENGTH) return;
 
     const newNote: Note = {
-      id: Date.now().toString(),
-      text: input,
+      id: uuidv4(),
+      text: sanitizedText,
       color: getRandomColor(),
       timestamp: new Date(),
     };
@@ -87,50 +102,21 @@ export default function OneDay() {
           <h1 className="text-5xl font-bold text-slate-900 mb-2 text-balance">
             OneDay
           </h1>
-          <p className="text-lg text-slate-600">
-            Capture your ideas and thoughts in one place
-          </p>
-        </div>
-
-        {/* Input Section */}
-        <div className="mb-8 flex gap-2">
-            <Input
-            type="text"
-            placeholder="What's on your mind today?"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-            className="flex-1 h-12 text-base"
-          />
-          <Button
-            onClick={addNote}
-            size="lg"
-            className="bg-slate-900 hover:bg-slate-800 text-white px-6 h-12 flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Add
-          </Button>
-        </div>
-
-        {/* Notes Grid */}
-        {notes.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-xl text-slate-500">
-              Start by adding your first idea or note!
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {notes.map((note) => (
-              <NoteCard
-                key={note.id}
-                note={note}
-                onDelete={deleteNote}
-              />
-            ))}
-          </div>
-        )}
+          Start by adding your first idea or note!
+        </p>
       </div>
-    </main>
+      ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {notes.map((note) => (
+          <NoteCard
+            key={note.id}
+            note={note}
+            onDelete={deleteNote}
+          />
+        ))}
+      </div>
+        )}
+    </div>
+    </main >
   );
 }
