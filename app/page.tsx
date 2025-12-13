@@ -1,6 +1,4 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -46,6 +44,9 @@ export default function OneDay() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const noteInputRef = useRef<HTMLInputElement>(null);
+
   // Load notes from localStorage on component mount
   useEffect(() => {
     const savedNotes = localStorage.getItem('oneday-notes');
@@ -72,6 +73,29 @@ export default function OneDay() {
       console.error('Failed to save notes to localStorage:', error);
     }
   }, [notes]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K or Cmd+K: Focus search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      // Ctrl+N or Cmd+N: Focus new note input
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        noteInputRef.current?.focus();
+      }
+      // Escape: Clear search
+      if (e.key === 'Escape' && searchQuery) {
+        setSearchQuery('');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [searchQuery]);
 
   const getRandomColor = () => {
     return COLORS[Math.floor(Math.random() * COLORS.length)];
@@ -154,6 +178,7 @@ export default function OneDay() {
         <div className="mb-8">
           <div className="flex gap-2">
             <Input
+              ref={noteInputRef}
               type="text"
               placeholder="What's on your mind today?"
               value={input}
@@ -184,8 +209,9 @@ export default function OneDay() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
               <Input
+                ref={searchInputRef}
                 type="text"
-                placeholder="Search notes..."
+                placeholder="Search notes... (Ctrl+K)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-11 text-base"
