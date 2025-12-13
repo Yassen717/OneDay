@@ -5,6 +5,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Plus, Search } from 'lucide-react';
 import NoteCard from '@/components/note-card';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -34,6 +44,7 @@ export default function OneDay() {
   const [input, setInput] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
 
   // Load notes from localStorage on component mount
   useEffect(() => {
@@ -90,8 +101,15 @@ export default function OneDay() {
   };
 
   const deleteNote = (id: string) => {
-    setNotes(notes.filter(note => note.id !== id));
-    toast.success('Note deleted');
+    setDeleteNoteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteNoteId) {
+      setNotes(notes.filter(note => note.id !== deleteNoteId));
+      toast.success('Note deleted');
+      setDeleteNoteId(null);
+    }
   };
 
   const editNote = (id: string, newText: string) => {
@@ -210,6 +228,24 @@ export default function OneDay() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteNoteId !== null} onOpenChange={() => setDeleteNoteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Note?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your note.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
