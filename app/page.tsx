@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import NoteCard from '@/components/note-card';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -33,6 +33,7 @@ export default function OneDay() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [input, setInput] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Load notes from localStorage on component mount
   useEffect(() => {
@@ -110,6 +111,11 @@ export default function OneDay() {
     }
   };
 
+  // Filter notes based on search query
+  const filteredNotes = notes.filter(note =>
+    note.text.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-8">
       <div className="max-w-7xl mx-auto">
@@ -154,6 +160,27 @@ export default function OneDay() {
           </div>
         </div>
 
+        {/* Search Section */}
+        {notes.length > 0 && (
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="Search notes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-11 text-base"
+              />
+            </div>
+            {searchQuery && (
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                Found {filteredNotes.length} of {notes.length} notes
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Notes Grid */}
         {notes.length === 0 ? (
           <div className="text-center py-20">
@@ -161,9 +188,15 @@ export default function OneDay() {
               Start by adding your first idea or note!
             </p>
           </div>
+        ) : filteredNotes.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-xl text-slate-500 dark:text-slate-400">
+              No notes found matching "{searchQuery}"
+            </p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {notes.map((note) => (
+            {filteredNotes.map((note) => (
               <NoteCard
                 key={note.id}
                 note={note}
