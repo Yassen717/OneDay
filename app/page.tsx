@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Loader2 } from 'lucide-react';
 import NoteCard from '@/components/note-card';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -65,6 +65,7 @@ export default function OneDay() {
         console.error('Failed to parse saved notes:', error);
       }
     }
+    setIsLoading(false);
   }, []);
 
   // Save notes to localStorage whenever they change
@@ -228,7 +229,14 @@ export default function OneDay() {
         )}
 
         {/* Notes Grid */}
-        {notes.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-20">
+            <Loader2 className="w-12 h-12 text-slate-400 animate-spin mx-auto mb-4" />
+            <p className="text-lg text-slate-500 dark:text-slate-400">
+              Loading your notes...
+            </p>
+          </div>
+        ) : notes.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-xl text-slate-500 dark:text-slate-400">
               Start by adding your first idea or note!
