@@ -163,6 +163,57 @@ export default function OneDay() {
     toast.success('Note updated');
   };
 
+  const exportNotes = () => {
+    const dataStr = JSON.stringify(notes, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `oneday-notes-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${notes.length} notes`);
+  };
+
+  const importNotes = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedNotes = JSON.parse(e.target?.result as string);
+
+        if (!Array.isArray(importedNotes)) {
+          toast.error('Invalid file format');
+          return;
+        }
+
+        const validNotes = importedNotes
+          .filter((note: any) => note.id && note.text && note.color && note.timestamp)
+          .map((note: any) => ({
+            ...note,
+            timestamp: new Date(note.timestamp),
+          }));
+
+        if (validNotes.length === 0) {
+          toast.error('No valid notes found in file');
+          return;
+        }
+
+        setNotes(validNotes);
+        toast.success(`Imported ${validNotes.length} notes`);
+      } catch (error) {
+        console.error('Failed to import notes:', error);
+        toast.error('Failed to import notes. Invalid file format.');
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       addNote();
