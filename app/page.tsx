@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Search, Loader2 } from 'lucide-react';
+import { Plus, Search, Loader2, Download, Upload } from 'lucide-react';
 import NoteCard from '@/components/note-card';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -187,7 +187,38 @@ export default function OneDay() {
               Capture your ideas and thoughts in one place
             </p>
           </div>
-          <ThemeToggle />
+          <div className="flex gap-2 items-center">
+            {notes.length > 0 && (
+              <>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={exportNotes}
+                  className="w-10 h-10 rounded-full"
+                  title="Export notes"
+                >
+                  <Download className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => document.getElementById('import-file')?.click()}
+                  className="w-10 h-10 rounded-full"
+                  title="Import notes"
+                >
+                  <Upload className="h-5 w-5" />
+                </Button>
+                <input
+                  id="import-file"
+                  type="file"
+                  accept=".json"
+                  onChange={importNotes}
+                  className="hidden"
+                />
+              </>
+            )}
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* Input Section */}
