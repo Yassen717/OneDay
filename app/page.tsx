@@ -45,6 +45,7 @@ export default function OneDay() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const noteInputRef = useRef<HTMLInputElement>(null);
@@ -70,12 +71,24 @@ export default function OneDay() {
 
   // Save notes to localStorage whenever they change
   useEffect(() => {
+    // Skip saving on initial load
+    if (isLoading) return;
+
     try {
       localStorage.setItem('oneday-notes', JSON.stringify(notes));
     } catch (error) {
-      console.error('Failed to save notes to localStorage:', error);
+      // Handle quota exceeded error
+      if (error instanceof DOMException && (
+        error.name === 'QuotaExceededError' ||
+        error.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+      )) {
+        toast.error('Storage limit reached! Please delete some notes or export your data.');
+      } else {
+        console.error('Failed to save notes to localStorage:', error);
+        toast.error('Failed to save notes. Please try again.');
+      }
     }
-  }, [notes]);
+  }, [notes, isLoading]);
 
   // Keyboard shortcuts
   useEffect(() => {
