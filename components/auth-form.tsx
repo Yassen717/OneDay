@@ -30,11 +30,9 @@ export function AuthForm() {
         await register(email, password, name);
         toast.success('Account created successfully!');
       }
-      router.push('/');
-      router.refresh();
+      window.location.href = '/';
     } catch (error: any) {
       toast.error(error.message || 'Authentication failed');
-    } finally {
       setLoading(false);
     }
   };
