@@ -25,7 +25,15 @@ export async function POST(request: NextRequest) {
 
     const token = jwt.sign({ email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
 
-    return NextResponse.json({ token, user: { email: user.email, name: user.name } });
+    const response = NextResponse.json({ token, user: { email: user.email, name: user.name } });
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7
+    });
+
+    return response;
   } catch (error) {
     return NextResponse.json({ error: 'Login failed' }, { status: 500 });
   }
