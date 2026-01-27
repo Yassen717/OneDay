@@ -18,6 +18,8 @@ import {
 import { Plus, Search, Loader2, Download, Upload } from 'lucide-react';
 import NoteCard from '@/components/note-card';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { UserProfile } from '@/components/user-profile';
+import { getUser, setUser, logout, User } from '@/lib/auth';
 
 interface Note {
   id: string;
@@ -46,11 +48,12 @@ export default function OneDay() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUserState] = useState<User | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const noteInputRef = useRef<HTMLInputElement>(null);
 
-  // Load notes from localStorage on component mount
+  // Load notes and user from localStorage on component mount
   useEffect(() => {
     const savedNotes = localStorage.getItem('oneday-notes');
     if (savedNotes) {
@@ -66,6 +69,14 @@ export default function OneDay() {
         console.error('Failed to parse saved notes:', error);
       }
     }
+    
+    // Load or create user
+    let currentUser = getUser();
+    if (!currentUser) {
+      currentUser = { name: 'Guest User', email: 'guest@oneday.app' };
+      setUser(currentUser);
+    }
+    setUserState(currentUser);
     setIsLoading(false);
   }, []);
 
@@ -225,6 +236,15 @@ export default function OneDay() {
     note.text.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleLogout = () => {
+    logout();
+    setUserState(null);
+    setNotes([]);
+    toast.success('Logged out successfully');
+    // Reload to reset state
+    window.location.reload();
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-8">
       <div className="max-w-7xl mx-auto">
@@ -269,6 +289,7 @@ export default function OneDay() {
               </>
             )}
             <ThemeToggle />
+            {user && <UserProfile user={user} onLogout={handleLogout} />}
           </div>
         </div>
 
