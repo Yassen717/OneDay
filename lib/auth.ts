@@ -25,6 +25,7 @@ export const setUser = (user: User) => {
 export const logout = () => {
   localStorage.removeItem('oneday-user');
   localStorage.removeItem('oneday-token');
+  fetch('/api/auth/logout', { method: 'POST' });
 };
 
 export const register = async (email: string, password: string, name: string) => {
