@@ -55,29 +55,50 @@ export default function OneDay() {
 
   // Load notes and user from localStorage on component mount
   useEffect(() => {
-    const savedNotes = localStorage.getItem('oneday-notes');
-    if (savedNotes) {
-      try {
-        const parsedNotes = JSON.parse(savedNotes);
-        // Convert timestamp strings back to Date objects
-        const notesWithDates = parsedNotes.map((note: any) => ({
-          ...note,
-          timestamp: new Date(note.timestamp),
-        }));
-        setNotes(notesWithDates);
-      } catch (error) {
-        console.error('Failed to parse saved notes:', error);
+    const initAuth = async () => {
+      const token = localStorage.getItem('oneday-token');
+      if (!token) {
+        window.location.href = '/login';
+        return;
       }
-    }
-    
-    // Load or create user
-    let currentUser = getUser();
-    if (!currentUser) {
-      currentUser = { name: 'Guest User', email: 'guest@oneday.app' };
-      setUser(currentUser);
-    }
-    setUserState(currentUser);
-    setIsLoading(false);
+
+      try {
+        const res = await fetch('/api/auth/verify', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        
+        if (!res.ok) {
+          localStorage.removeItem('oneday-token');
+          localStorage.removeItem('oneday-user');
+          window.location.href = '/login';
+          return;
+        }
+
+        const data = await res.json();
+        setUserState(data.user);
+
+        const savedNotes = localStorage.getItem('oneday-notes');
+        if (savedNotes) {
+          try {
+            const parsedNotes = JSON.parse(savedNotes);
+            const notesWithDates = parsedNotes.map((note: any) => ({
+              ...note,
+              timestamp: new Date(note.timestamp),
+            }));
+            setNotes(notesWithDates);
+          } catch (error) {
+            console.error('Failed to parse saved notes:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Auth verification failed:', error);
+        window.location.href = '/login';
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
   }, []);
 
   // Save notes to localStorage whenever they change
