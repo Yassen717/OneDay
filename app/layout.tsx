@@ -11,7 +11,9 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: 'One Day App',
-
+  icons: {
+    icon: '/favicon.png',
+  },
 }
 
 export default function RootLayout({
