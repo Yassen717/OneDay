@@ -59,7 +59,7 @@ export function AIChat() {
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500" />
               <div>
-                <h3 className="font-semibold">AI Assistant</h3>
+                <h3 className="font-semibold">One Day AI</h3>
                 <p className="text-xs text-gray-500">What can I do for you?</p>
               </div>
             </div>
