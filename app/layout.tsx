@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
+import { AIChat } from '@/components/ai-chat'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -29,6 +30,7 @@ export default function RootLayout({
             {children}
           </ErrorBoundary>
           <Toaster />
+          <AIChat />
         </ThemeProvider>
         <Analytics />
       </body>
