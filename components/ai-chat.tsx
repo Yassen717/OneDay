@@ -1,24 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function AIChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: "user" | "ai"; content: string }[]>([]);
   const [input, setInput] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const handleSend = () => {
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
     if (!input.trim()) return;
-    setMessages([...messages, { role: "user", content: input }]);
+    const userMessage = input;
+    setMessages([...messages, { role: "user", content: userMessage }]);
     setInput("");
-    // AI response placeholder
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { role: "ai", content: "I'm here to help! (AI not connected yet)" }]);
-    }, 500);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMessage })
+      });
+      const data = await res.json();
+      
+      if (data.error) {
+        setMessages((prev) => [...prev, { role: "ai", content: `Error: ${data.error}` }]);
+      } else {
+        setMessages((prev) => [...prev, { role: "ai", content: data.message }]);
+      }
+    } catch (error) {
+      setMessages((prev) => [...prev, { role: "ai", content: "Failed to connect to AI" }]);
+    }
   };
 
   return (
@@ -46,7 +66,7 @@ export function AIChat() {
           </div>
 
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
+          <div className="flex-1 overflow-y-auto p-4" ref={scrollRef}>
             {messages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center text-gray-500">
                 <MessageCircle className="mb-2 h-12 w-12 opacity-20" />
@@ -57,7 +77,7 @@ export function AIChat() {
                 {messages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                      className={`max-w-[80%] rounded-2xl px-4 py-2 break-words whitespace-pre-wrap ${
                         msg.role === "user"
                           ? "bg-blue-500 text-white"
                           : "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white"
@@ -69,7 +89,7 @@ export function AIChat() {
                 ))}
               </div>
             )}
-          </ScrollArea>
+          </div>
 
           {/* Input */}
           <div className="border-t p-4">
