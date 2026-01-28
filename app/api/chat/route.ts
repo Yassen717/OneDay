@@ -12,7 +12,13 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: "llama-3.1-8b-instant",
-        messages: [{ role: "user", content: message }]
+        messages: [
+          { 
+            role: "system", 
+            content: "You are One Day AI, a helpful assistant for the One Day app. One Day is a beautiful note-taking app where users capture their ideas and thoughts in one place. Help users with their questions, provide creative suggestions, and assist with organizing their thoughts. Be friendly, concise, and helpful."
+          },
+          { role: "user", content: message }
+        ]
       })
     });
 
