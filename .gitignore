@@ -69,3 +69,5 @@ Thumbs.db
 # yarn.lock
 # pnpm-lock.yaml
 .next/
+
+/lib/generated/prisma
