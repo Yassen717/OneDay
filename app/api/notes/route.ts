@@ -8,7 +8,12 @@ function getUserFromToken(request: NextRequest) {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');
   if (!token) return null;
   try {
-    return jwt.verify(token, JWT_SECRET) as { userId: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string; email?: string };
+    if (!decoded.userId) {
+      // Old token without userId - reject it
+      return null;
+    }
+    return { userId: decoded.userId };
   } catch {
     return null;
   }
