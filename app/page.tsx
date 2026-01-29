@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,13 +18,13 @@ import { Plus, Search, Loader2, Download, Upload } from 'lucide-react';
 import NoteCard from '@/components/note-card';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserProfile } from '@/components/user-profile';
-import { getUser, setUser, logout, User } from '@/lib/auth';
+import { logout, User } from '@/lib/auth';
 
 interface Note {
   id: string;
   text: string;
   color: string;
-  timestamp: Date;
+  createdAt: string;
 }
 
 const COLORS = [
@@ -53,10 +52,26 @@ export default function OneDay() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const noteInputRef = useRef<HTMLInputElement>(null);
 
-  // Load notes and user from localStorage on component mount
+  const getToken = () => localStorage.getItem('oneday-token');
+
+  const fetchNotes = async () => {
+    try {
+      const token = getToken();
+      const res = await fetch('/api/notes', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotes(data.notes);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notes:', error);
+    }
+  };
+
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('oneday-token');
+      const token = getToken();
       if (!token) {
         window.location.href = '/login';
         return;
@@ -76,20 +91,7 @@ export default function OneDay() {
 
         const data = await res.json();
         setUserState(data.user);
-
-        const savedNotes = localStorage.getItem('oneday-notes');
-        if (savedNotes) {
-          try {
-            const parsedNotes = JSON.parse(savedNotes);
-            const notesWithDates = parsedNotes.map((note: any) => ({
-              ...note,
-              timestamp: new Date(note.timestamp),
-            }));
-            setNotes(notesWithDates);
-          } catch (error) {
-            console.error('Failed to parse saved notes:', error);
-          }
-        }
+        await fetchNotes();
       } catch (error) {
         console.error('Auth verification failed:', error);
         window.location.href = '/login';
@@ -101,41 +103,16 @@ export default function OneDay() {
     initAuth();
   }, []);
 
-  // Save notes to localStorage whenever they change
-  useEffect(() => {
-    // Skip saving on initial load
-    if (isLoading) return;
-
-    try {
-      localStorage.setItem('oneday-notes', JSON.stringify(notes));
-    } catch (error) {
-      // Handle quota exceeded error
-      if (error instanceof DOMException && (
-        error.name === 'QuotaExceededError' ||
-        error.name === 'NS_ERROR_DOM_QUOTA_REACHED'
-      )) {
-        toast.error('Storage limit reached! Please delete some notes or export your data.');
-      } else {
-        console.error('Failed to save notes to localStorage:', error);
-        toast.error('Failed to save notes. Please try again.');
-      }
-    }
-  }, [notes, isLoading]);
-
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+K or Cmd+K: Focus search
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         searchInputRef.current?.focus();
       }
-      // Ctrl+N or Cmd+N: Focus new note input
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault();
         noteInputRef.current?.focus();
       }
-      // Escape: Clear search
       if (e.key === 'Escape' && searchQuery) {
         setSearchQuery('');
       }
@@ -153,46 +130,87 @@ export default function OneDay() {
     return text.trim().replace(/\s+/g, ' ');
   };
 
-  const addNote = () => {
+  const addNote = async () => {
     const sanitizedText = sanitizeInput(input);
+    if (sanitizedText === '' || sanitizedText.length > MAX_NOTE_LENGTH) return;
 
-    // Validate input
-    if (sanitizedText === '') return;
-    if (sanitizedText.length > MAX_NOTE_LENGTH) return;
+    try {
+      const token = getToken();
+      const res = await fetch('/api/notes', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: sanitizedText, color: getRandomColor() }),
+      });
 
-    const newNote: Note = {
-      id: uuidv4(),
-      text: sanitizedText,
-      color: getRandomColor(),
-      timestamp: new Date(),
-    };
-
-    setNotes([newNote, ...notes]);
-    setInput('');
-    toast.success('Note created successfully!');
+      if (res.ok) {
+        const data = await res.json();
+        setNotes([data.note, ...notes]);
+        setInput('');
+        toast.success('Note created successfully!');
+      } else {
+        toast.error('Failed to create note');
+      }
+    } catch (error) {
+      toast.error('Failed to create note');
+    }
   };
 
   const deleteNote = (id: string) => {
     setDeleteNoteId(id);
   };
 
-  const confirmDelete = () => {
-    if (deleteNoteId) {
-      setNotes(notes.filter(note => note.id !== deleteNoteId));
-      toast.success('Note deleted');
+  const confirmDelete = async () => {
+    if (!deleteNoteId) return;
+
+    try {
+      const token = getToken();
+      const res = await fetch(`/api/notes?id=${deleteNoteId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        setNotes(notes.filter(note => note.id !== deleteNoteId));
+        toast.success('Note deleted');
+      } else {
+        toast.error('Failed to delete note');
+      }
+    } catch (error) {
+      toast.error('Failed to delete note');
+    } finally {
       setDeleteNoteId(null);
     }
   };
 
-  const editNote = (id: string, newText: string) => {
+  const editNote = async (id: string, newText: string) => {
     const sanitizedText = sanitizeInput(newText);
     if (sanitizedText === '' || sanitizedText.length > MAX_NOTE_LENGTH) return;
 
-    setNotes(notes.map(note =>
-      note.id === id ? { ...note, text: sanitizedText } : note
-    ));
-    setEditingNoteId(null);
-    toast.success('Note updated');
+    try {
+      const token = getToken();
+      const res = await fetch('/api/notes', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, text: sanitizedText }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setNotes(notes.map(note => note.id === id ? data.note : note));
+        setEditingNoteId(null);
+        toast.success('Note updated');
+      } else {
+        toast.error('Failed to update note');
+      }
+    } catch (error) {
+      toast.error('Failed to update note');
+    }
   };
 
   const exportNotes = () => {
@@ -209,36 +227,41 @@ export default function OneDay() {
     toast.success(`Exported ${notes.length} notes`);
   };
 
-  const importNotes = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const importNotes = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const importedNotes = JSON.parse(e.target?.result as string);
-
         if (!Array.isArray(importedNotes)) {
           toast.error('Invalid file format');
           return;
         }
 
-        const validNotes = importedNotes
-          .filter((note: any) => note.id && note.text && note.color && note.timestamp)
-          .map((note: any) => ({
-            ...note,
-            timestamp: new Date(note.timestamp),
-          }));
+        const token = getToken();
+        let successCount = 0;
 
-        if (validNotes.length === 0) {
-          toast.error('No valid notes found in file');
-          return;
+        for (const note of importedNotes) {
+          if (note.text && note.color) {
+            try {
+              await fetch('/api/notes', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: note.text, color: note.color }),
+              });
+              successCount++;
+            } catch {}
+          }
         }
 
-        setNotes(validNotes);
-        toast.success(`Imported ${validNotes.length} notes`);
+        await fetchNotes();
+        toast.success(`Imported ${successCount} notes`);
       } catch (error) {
-        console.error('Failed to import notes:', error);
         toast.error('Failed to import notes. Invalid file format.');
       }
     };
@@ -252,7 +275,6 @@ export default function OneDay() {
     }
   };
 
-  // Filter notes based on search query
   const filteredNotes = notes.filter(note =>
     note.text.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -262,7 +284,6 @@ export default function OneDay() {
     setUserState(null);
     setNotes([]);
     toast.success('Logged out successfully');
-    // Reload to reset state
     window.location.reload();
   };
 
