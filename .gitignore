@@ -63,11 +63,11 @@ Thumbs.db
 *.swo
 *.tmp
 *.temp
+*.db
 
 # Lockfiles (optional, uncomment to ignore if needed)
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
-.next/
 
 /lib/generated/prisma
