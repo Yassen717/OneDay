@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { users } from '../store';
+import { prisma } from '@/lib/prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
 
@@ -13,14 +13,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    if (users.has(email)) {
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
       return NextResponse.json({ error: 'User already exists' }, { status: 409 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    users.set(email, { email, password: hashedPassword, name });
+    const user = await prisma.user.create({
+      data: { email, password: hashedPassword, name }
+    });
 
-    const token = jwt.sign({ email, name }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id, email, name }, JWT_SECRET, { expiresIn: '7d' });
 
     const response = NextResponse.json({ token, user: { email, name } }, { status: 201 });
     response.cookies.set('token', token, {

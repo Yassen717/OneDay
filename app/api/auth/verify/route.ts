@@ -11,7 +11,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No token provided' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as { email: string; name: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string; email: string; name: string };
+    
+    if (!decoded.userId) {
+      return NextResponse.json({ error: 'Invalid token - please login again' }, { status: 401 });
+    }
+    
     return NextResponse.json({ user: { email: decoded.email, name: decoded.name } });
   } catch (error) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
