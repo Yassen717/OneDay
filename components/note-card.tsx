@@ -7,7 +7,7 @@ interface Note {
   id: string;
   text: string;
   color: string;
-  timestamp: Date;
+  createdAt: string;
 }
 
 interface NoteCardProps {
@@ -29,13 +29,13 @@ export default function NoteCard({
 }: NoteCardProps) {
   const [editText, setEditText] = useState(note.text);
 
-  const formatDate = (date: Date) => {
+  const formatDate = (dateStr: string) => {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }).format(date);
+    }).format(new Date(dateStr));
   };
 
   const handleSave = () => {
@@ -87,7 +87,7 @@ export default function NoteCard({
           </p>
           <div className="mt-4 flex items-center justify-between">
             <span className="text-xs text-slate-600 font-medium">
-              {formatDate(note.timestamp)}
+              {formatDate(note.createdAt)}
             </span>
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <Button
