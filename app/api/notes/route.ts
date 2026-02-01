@@ -26,6 +26,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // IMPORTANT: Verify user exists in database
+    // This prevents foreign key constraint errors after migrations reset the database
+    // Solution: User must log out and log in again if this check fails
+    const userExists = await prisma.user.findUnique({
+      where: { id: user.userId }
+    });
+    if (!userExists) {
+      return NextResponse.json({ error: 'User not found. Please log in again.' }, { status: 401 });
+    }
+
     const notes = await prisma.note.findMany({
       where: { userId: user.userId },
       orderBy: { createdAt: 'desc' }
@@ -43,6 +53,16 @@ export async function POST(request: NextRequest) {
     const user = getUserFromToken(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // IMPORTANT: Verify user exists in database
+    // This prevents foreign key constraint errors after migrations reset the database
+    // Solution: User must log out and log in again if this check fails
+    const userExists = await prisma.user.findUnique({
+      where: { id: user.userId }
+    });
+    if (!userExists) {
+      return NextResponse.json({ error: 'User not found. Please log in again.' }, { status: 401 });
     }
 
     const { text, color } = await request.json();
