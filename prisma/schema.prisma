@@ -7,6 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// IMPORTANT: Database Location & Migration Notes
+// ============================================
+// 1. DATABASE_URL should point to: "file:./prisma/dev.db"
+// 2. When running "npx prisma migrate dev", it may RESET and DELETE all data
+// 3. After migrations reset the database:
+//    - All users are deleted
+//    - JWT tokens become invalid (reference non-existent users)
+//    - You'll get "Foreign key constraint violated" errors
+//    - SOLUTION: Log out and log in again to create a new user
+// 4. For development without data loss, prefer "npx prisma db push"
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -14,6 +25,7 @@ model User {
   name      String
   notes     Note[]
   chatMessages ChatMessage[]
+  conversations ChatConversation[]
   createdAt DateTime @default(now())
 }
 
@@ -27,11 +39,23 @@ model Note {
   updatedAt DateTime @updatedAt
 }
 
+model ChatConversation {
+  id        String   @id @default(cuid())
+  title     String   @default("New Chat")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model ChatMessage {
   id        String   @id @default(cuid())
   role      String
   content   String
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation ChatConversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
