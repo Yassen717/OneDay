@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation";
 import { MessageCircle, X, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getToken } from "@/lib/auth";
 
 export function AIChat() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<{ role: "user" | "ai"; content: string }[]>([]);
+  const [messages, setMessages] = useState<{ id?: string; role: "user" | "ai"; content: string }[]>([]);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -21,6 +22,35 @@ export function AIChat() {
     }
   }, [messages]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchMessages = async () => {
+      try {
+        const token = getToken();
+        if (!token) return;
+
+        const res = await fetch("/api/chat", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data.messages)) {
+          setMessages(data.messages.map((msg: { id: string; role: "user" | "ai"; content: string }) => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content
+          })));
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    fetchMessages();
+  }, [isOpen]);
+
   const handleSend = async () => {
     if (!input.trim()) return;
     const userMessage = input;
@@ -28,9 +58,13 @@ export function AIChat() {
     setInput("");
 
     try {
+      const token = getToken();
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ message: userMessage })
       });
       const data = await res.json();
