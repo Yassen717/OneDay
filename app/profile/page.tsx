@@ -17,7 +17,7 @@ interface Note {
   id: string;
   text: string;
   color: string;
-  timestamp: Date;
+  createdAt: string;
 }
 
 export default function ProfilePage() {
@@ -35,19 +35,27 @@ export default function ProfilePage() {
       setEmail(currentUser.email);
     }
 
-    const savedNotes = localStorage.getItem('oneday-notes');
-    if (savedNotes) {
+    const loadNotes = async () => {
       try {
-        const parsedNotes = JSON.parse(savedNotes);
-        const notesWithDates = parsedNotes.map((note: any) => ({
-          ...note,
-          timestamp: new Date(note.timestamp),
-        }));
-        setNotes(notesWithDates);
+        const token = localStorage.getItem('oneday-token');
+        if (!token) return;
+
+        const res = await fetch('/api/notes', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (Array.isArray(data.notes)) {
+          setNotes(data.notes);
+        }
       } catch (error) {
-        console.error('Failed to parse notes:', error);
+        console.error('Failed to load notes:', error);
       }
-    }
+    };
+
+    loadNotes();
   }, []);
 
   const handleSave = () => {
@@ -77,7 +85,7 @@ export default function ProfilePage() {
 
     const notesPerDay = last7Days.map(date => {
       const count = notes.filter(note => 
-        note.timestamp.toISOString().split('T')[0] === date
+        new Date(note.createdAt).toISOString().split('T')[0] === date
       ).length;
       return {
         date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
@@ -197,7 +205,7 @@ export default function ProfilePage() {
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">
                   {notes.filter(n => {
                     const today = new Date().toISOString().split('T')[0];
-                    return n.timestamp.toISOString().split('T')[0] === today;
+                    return new Date(n.createdAt).toISOString().split('T')[0] === today;
                   }).length}
                 </p>
                 <p className="text-xs text-slate-600 dark:text-slate-400">Today</p>
@@ -207,7 +215,7 @@ export default function ProfilePage() {
                   {notes.filter(n => {
                     const weekAgo = new Date();
                     weekAgo.setDate(weekAgo.getDate() - 7);
-                    return n.timestamp >= weekAgo;
+                    return new Date(n.createdAt) >= weekAgo;
                   }).length}
                 </p>
                 <p className="text-xs text-slate-600 dark:text-slate-400">This Week</p>
