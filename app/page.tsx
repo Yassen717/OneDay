@@ -101,6 +101,13 @@ export default function OneDay() {
     };
 
     initAuth();
+
+    // Listen for notes-updated event from AI chat
+    const handleNotesUpdated = () => {
+      fetchNotes();
+    };
+    window.addEventListener("notes-updated", handleNotesUpdated);
+    return () => window.removeEventListener("notes-updated", handleNotesUpdated);
   }, []);
 
   useEffect(() => {
