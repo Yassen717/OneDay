@@ -4,13 +4,16 @@ import { prisma } from "@/lib/prisma";
 
 const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-key";
 
-type NoteAction =
-  | { action: "list"; limit?: number }
-  | { action: "read"; noteId?: string; query?: string }
-  | { action: "update"; noteId?: string; query?: string; text?: string }
-  | { action: "delete"; noteId?: string; query?: string }
-  | { action: "create"; title?: string; description?: string }
-  | { action: "none" };
+type NoteAction = {
+  action: "list" | "read" | "update" | "delete" | "create" | "none";
+  noteId?: string;
+  query?: string;
+  text?: string;
+  limit?: number;
+  title?: string;
+  description?: string;
+  selection?: number;
+};
 
 const ACTION_SYSTEM_PROMPT = `You are a routing assistant for a notes app.
 Return ONLY valid JSON. No markdown, no code blocks.
@@ -25,7 +28,8 @@ Output schema (exact keys):
   "text": string | null,
   "limit": number | null,
   "title": string | null,
-  "description": string | null
+  "description": string | null,
+  "selection": number | null
 }
 
 Rules:
@@ -34,6 +38,7 @@ Rules:
 - If the user refers to a specific note by ID, set noteId.
 - If the user refers by content (e.g., "the note about taxes"), set query.
 - For update, set text to the new note content.
+- If the user is answering a previous list ("the second one", "#2"), set selection to a 1-based index and keep the action consistent with the previous request. If possible, also set query based on the earlier list/context.
 - If not a notes action, set action "none".
 - Keep strings concise.
 `;
@@ -53,22 +58,20 @@ function safeParseAction(jsonText: string): NoteAction {
       limit?: number | null;
       title?: string | null;
       description?: string | null;
+      selection?: number | null;
     };
     const action = data.action;
-    if (action === "list") {
-      return { action, limit: data.limit ?? undefined };
-    }
-    if (action === "read") {
-      return { action, noteId: data.noteId ?? undefined, query: data.query ?? undefined };
-    }
-    if (action === "update") {
-      return { action, noteId: data.noteId ?? undefined, query: data.query ?? undefined, text: data.text ?? undefined };
-    }
-    if (action === "delete") {
-      return { action, noteId: data.noteId ?? undefined, query: data.query ?? undefined };
-    }
-    if (action === "create") {
-      return { action, title: data.title ?? undefined, description: data.description ?? undefined };
+    if (action === "list" || action === "read" || action === "update" || action === "delete" || action === "create") {
+      return {
+        action,
+        noteId: data.noteId ?? undefined,
+        query: data.query ?? undefined,
+        text: data.text ?? undefined,
+        limit: data.limit ?? undefined,
+        title: data.title ?? undefined,
+        description: data.description ?? undefined,
+        selection: typeof data.selection === "number" ? data.selection : undefined
+      };
     }
     return { action: "none" };
   } catch (e) {
@@ -77,7 +80,10 @@ function safeParseAction(jsonText: string): NoteAction {
   }
 }
 
-async function detectNoteAction(message: string): Promise<NoteAction> {
+async function detectNoteAction(
+  message: string,
+  contextMessages: Array<{ role: "user" | "assistant"; content: string }> = []
+): Promise<NoteAction> {
   try {
     console.log("[AI Chat] Detecting action for message:", message);
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -91,6 +97,7 @@ async function detectNoteAction(message: string): Promise<NoteAction> {
         temperature: 0,
         messages: [
           { role: "system", content: ACTION_SYSTEM_PROMPT },
+          ...contextMessages,
           { role: "user", content: message }
         ]
       })
@@ -122,6 +129,27 @@ function getUserFromToken(request: NextRequest) {
   } catch {
     return null;
   }
+}
+
+function extractNumberedItems(text: string): string[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .map((line) => {
+      const match = line.match(/^\d+\.\s+(.*)$/);
+      return match ? match[1].trim() : null;
+    })
+    .filter((item): item is string => Boolean(item));
+}
+
+function getLatestAssistantList(history: Array<{ role: string; content: string }>): string[] {
+  for (let i = history.length - 1; i >= 0; i -= 1) {
+    if (history[i].role === "ai") {
+      const items = extractNumberedItems(history[i].content || "");
+      if (items.length > 0) return items;
+    }
+  }
+  return [];
 }
 
 // GET: List all conversations or get messages for a specific conversation
@@ -215,7 +243,8 @@ export async function POST(request: NextRequest) {
     }));
 
     // Detect if user wants to perform a note action
-    const action = await detectNoteAction(message);
+    const actionContext = contextMessages.slice(-6);
+    const action = await detectNoteAction(message, actionContext);
     console.log("[AI Chat] Final action to execute:", action.action);
 
     let aiMessage: string | undefined;
@@ -265,6 +294,36 @@ export async function POST(request: NextRequest) {
           aiMessage = note
             ? `Here's the note:\n${note.text}`
             : "I couldn't find a note with that id.";
+        } else if (action.selection) {
+          const index = Math.max(1, action.selection) - 1;
+          if (action.query) {
+            const allNotes = await prisma.note.findMany({
+              where: { userId: user.userId },
+              orderBy: { createdAt: "desc" }
+            });
+            const queryLower = action.query.toLowerCase();
+            const matches = allNotes.filter(n => n.text.toLowerCase().includes(queryLower));
+            const selected = matches[index];
+            aiMessage = selected
+              ? `Here's the note:\n${selected.text}`
+              : "I couldn't find that note. Which one did you mean?";
+          } else {
+            const items = getLatestAssistantList(history);
+            const snippetRaw = items[index];
+            if (!snippetRaw) {
+              aiMessage = "Which note do you mean? Describe what it's about.";
+            } else {
+              const snippet = snippetRaw.replace(/\.\.\.$/, "").trim().toLowerCase();
+              const allNotes = await prisma.note.findMany({
+                where: { userId: user.userId },
+                orderBy: { createdAt: "desc" }
+              });
+              const selected = allNotes.find(n => n.text.toLowerCase().includes(snippet));
+              aiMessage = selected
+                ? `Here's the note:\n${selected.text}`
+                : "I couldn't find that note. Describe what it's about.";
+            }
+          }
         } else if (action.query) {
           // SQLite doesn't support case-insensitive contains, so filter in JS
           const allNotes = await prisma.note.findMany({
@@ -306,6 +365,48 @@ export async function POST(request: NextRequest) {
             });
             aiMessage = "Done! I've updated the note. Refresh the page to see the changes.";
           }
+        } else if (action.selection) {
+          const index = Math.max(1, action.selection) - 1;
+          if (action.query) {
+            const allNotes = await prisma.note.findMany({
+              where: { userId: user.userId },
+              orderBy: { createdAt: "desc" }
+            });
+            const queryLower = action.query.toLowerCase();
+            const matches = allNotes.filter(n => n.text.toLowerCase().includes(queryLower));
+            const selected = matches[index];
+            if (!selected) {
+              aiMessage = "I couldn't find that note. Which one should I update?";
+            } else {
+              await prisma.note.update({
+                where: { id: selected.id },
+                data: { text: action.text.trim() }
+              });
+              aiMessage = "Done! I've updated the note. Refresh the page to see the changes.";
+            }
+          } else {
+            const items = getLatestAssistantList(history);
+            const snippetRaw = items[index];
+            if (!snippetRaw) {
+              aiMessage = "Which note should I update? Describe what it's about.";
+            } else {
+              const snippet = snippetRaw.replace(/\.\.\.$/, "").trim().toLowerCase();
+              const allNotes = await prisma.note.findMany({
+                where: { userId: user.userId },
+                orderBy: { createdAt: "desc" }
+              });
+              const selected = allNotes.find(n => n.text.toLowerCase().includes(snippet));
+              if (!selected) {
+                aiMessage = "I couldn't find that note. Describe what it's about.";
+              } else {
+                await prisma.note.update({
+                  where: { id: selected.id },
+                  data: { text: action.text.trim() }
+                });
+                aiMessage = "Done! I've updated the note. Refresh the page to see the changes.";
+              }
+            }
+          }
         } else if (action.query) {
           const allNotes = await prisma.note.findMany({
             where: { userId: user.userId },
@@ -344,6 +445,42 @@ export async function POST(request: NextRequest) {
           } else {
             await prisma.note.delete({ where: { id: note.id } });
             aiMessage = "Done! I've deleted the note. Refresh the page to see the changes.";
+          }
+        } else if (action.selection) {
+          const index = Math.max(1, action.selection) - 1;
+          if (action.query) {
+            const allNotes = await prisma.note.findMany({
+              where: { userId: user.userId },
+              orderBy: { createdAt: "desc" }
+            });
+            const queryLower = action.query.toLowerCase();
+            const matches = allNotes.filter(n => n.text.toLowerCase().includes(queryLower));
+            const selected = matches[index];
+            if (!selected) {
+              aiMessage = "I couldn't find that note. Which one should I delete?";
+            } else {
+              await prisma.note.delete({ where: { id: selected.id } });
+              aiMessage = "Done! I've deleted the note. Refresh the page to see the changes.";
+            }
+          } else {
+            const items = getLatestAssistantList(history);
+            const snippetRaw = items[index];
+            if (!snippetRaw) {
+              aiMessage = "Which note should I delete? Describe what it's about.";
+            } else {
+              const snippet = snippetRaw.replace(/\.\.\.$/, "").trim().toLowerCase();
+              const allNotes = await prisma.note.findMany({
+                where: { userId: user.userId },
+                orderBy: { createdAt: "desc" }
+              });
+              const selected = allNotes.find(n => n.text.toLowerCase().includes(snippet));
+              if (!selected) {
+                aiMessage = "I couldn't find that note. Describe what it's about.";
+              } else {
+                await prisma.note.delete({ where: { id: selected.id } });
+                aiMessage = "Done! I've deleted the note. Refresh the page to see the changes.";
+              }
+            }
           }
         } else if (action.query) {
           const allNotes = await prisma.note.findMany({
