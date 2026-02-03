@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { MessageCircle, X, Send, Plus, Trash2, Menu, Sparkles, ChevronDown, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useNotes } from "@/contexts/notes-context";
 
 interface Message {
   id?: string;
@@ -31,6 +32,8 @@ export function AIChat() {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  
+  const { refreshNotes } = useNotes();
 
   if (pathname === "/login") return null;
 
@@ -152,7 +155,7 @@ export function AIChat() {
       } else {
         setMessages(prev => [...prev, { role: "ai", content: data.message }]);
         if (data.notesChanged) {
-          window.dispatchEvent(new Event("notes-updated"));
+          refreshNotes();
         }
         if (!currentConversation && data.conversationId) {
           setCurrentConversation(data.conversationId);

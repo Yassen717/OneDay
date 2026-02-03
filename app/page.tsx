@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import NoteCard from '@/components/note-card';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UserProfile } from '@/components/user-profile';
 import { logout, User } from '@/lib/auth';
+import { useNotes } from '@/contexts/notes-context';
 
 interface Note {
   id: string;
@@ -51,9 +52,11 @@ export default function OneDay() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const noteInputRef = useRef<HTMLInputElement>(null);
+  
+  const { registerRefreshCallback } = useNotes();
 
   // Token is now in httpOnly cookie, sent automatically by the browser
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     try {
       const res = await fetch('/api/notes');
       if (res.ok) {
@@ -63,7 +66,7 @@ export default function OneDay() {
     } catch (error) {
       console.error('Failed to fetch notes:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -89,14 +92,12 @@ export default function OneDay() {
     };
 
     initAuth();
-
-    // Listen for notes-updated event from AI chat
-    const handleNotesUpdated = () => {
-      fetchNotes();
-    };
-    window.addEventListener("notes-updated", handleNotesUpdated);
-    return () => window.removeEventListener("notes-updated", handleNotesUpdated);
   }, []);
+
+  // Register the refresh callback with the context so AI chat can trigger it
+  useEffect(() => {
+    registerRefreshCallback(fetchNotes);
+  }, [registerRefreshCallback, fetchNotes]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
