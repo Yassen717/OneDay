@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { ThemeProvider } from '@/components/theme-provider'
+import { NotesProvider } from '@/contexts/notes-context'
 import { Toaster } from '@/components/ui/toaster'
 import { AIChat } from '@/components/ai-chat'
 import './globals.css'
@@ -26,11 +27,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${_geist.className} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
-          <Toaster />
-          <AIChat />
+          <NotesProvider>
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+            <Toaster />
+            <AIChat />
+          </NotesProvider>
         </ThemeProvider>
         <Analytics />
       </body>
