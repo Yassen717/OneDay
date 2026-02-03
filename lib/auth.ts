@@ -1,9 +1,55 @@
+import { NextRequest } from 'next/server';
+import jwt from 'jsonwebtoken';
+import { prisma } from './prisma';
+
 export interface User {
   name: string;
   email: string;
 }
 
-// Token is now stored in httpOnly cookie (set by server), not accessible by JavaScript
+export interface AuthenticatedUser {
+  userId: string;
+  email: string;
+  name: string;
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
+
+// SERVER-SIDE: Validate JWT token and verify user exists in database
+// This centralizes auth logic and prevents redundant checks across API routes
+export async function validateUserFromRequest(request: NextRequest): Promise<AuthenticatedUser | null> {
+  try {
+    // Extract token from httpOnly cookie
+    const token = request.cookies.get('token')?.value;
+    if (!token) return null;
+
+    // Verify JWT signature and expiration
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string; email?: string; name?: string };
+    if (!decoded.userId) {
+      // Old token format without userId - reject it
+      return null;
+    }
+
+    // Verify user exists in database (prevents stale tokens after DB resets or user deletions)
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, email: true, name: true }
+    });
+
+    if (!user) return null;
+
+    return {
+      userId: user.id,
+      email: user.email,
+      name: user.name
+    };
+  } catch (error) {
+    // JWT verification failed (expired, invalid signature, etc.)
+    return null;
+  }
+}
+
+// CLIENT-SIDE: Token is now stored in httpOnly cookie (set by server), not accessible by JavaScript
 // This is more secure as it prevents XSS attacks from stealing the token
 
 export const getUser = (): User | null => {
