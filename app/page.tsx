@@ -52,14 +52,10 @@ export default function OneDay() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const noteInputRef = useRef<HTMLInputElement>(null);
 
-  const getToken = () => localStorage.getItem('oneday-token');
-
+  // Token is now in httpOnly cookie, sent automatically by the browser
   const fetchNotes = async () => {
     try {
-      const token = getToken();
-      const res = await fetch('/api/notes', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const res = await fetch('/api/notes');
       if (res.ok) {
         const data = await res.json();
         setNotes(data.notes);
@@ -71,19 +67,11 @@ export default function OneDay() {
 
   useEffect(() => {
     const initAuth = async () => {
-      const token = getToken();
-      if (!token) {
-        window.location.href = '/login';
-        return;
-      }
-
       try {
-        const res = await fetch('/api/auth/verify', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
+        // Cookie is sent automatically by the browser
+        const res = await fetch('/api/auth/verify');
         
         if (!res.ok) {
-          localStorage.removeItem('oneday-token');
           localStorage.removeItem('oneday-user');
           window.location.href = '/login';
           return;
@@ -142,11 +130,9 @@ export default function OneDay() {
     if (sanitizedText === '' || sanitizedText.length > MAX_NOTE_LENGTH) return;
 
     try {
-      const token = getToken();
       const res = await fetch('/api/notes', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ text: sanitizedText, color: getRandomColor() }),
@@ -173,10 +159,8 @@ export default function OneDay() {
     if (!deleteNoteId) return;
 
     try {
-      const token = getToken();
       const res = await fetch(`/api/notes?id=${deleteNoteId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
       });
 
       if (res.ok) {
@@ -197,11 +181,9 @@ export default function OneDay() {
     if (sanitizedText === '' || sanitizedText.length > MAX_NOTE_LENGTH) return;
 
     try {
-      const token = getToken();
       const res = await fetch('/api/notes', {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ id, text: sanitizedText }),
@@ -247,7 +229,6 @@ export default function OneDay() {
           return;
         }
 
-        const token = getToken();
         let successCount = 0;
 
         for (const note of importedNotes) {
@@ -256,7 +237,6 @@ export default function OneDay() {
               await fetch('/api/notes', {
                 method: 'POST',
                 headers: {
-                  'Authorization': `Bearer ${token}`,
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ text: note.text, color: note.color }),

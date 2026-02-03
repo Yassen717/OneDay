@@ -3,14 +3,8 @@ export interface User {
   email: string;
 }
 
-export const getToken = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('oneday-token');
-};
-
-export const setToken = (token: string) => {
-  localStorage.setItem('oneday-token', token);
-};
+// Token is now stored in httpOnly cookie (set by server), not accessible by JavaScript
+// This is more secure as it prevents XSS attacks from stealing the token
 
 export const getUser = (): User | null => {
   if (typeof window === 'undefined') return null;
@@ -22,10 +16,10 @@ export const setUser = (user: User) => {
   localStorage.setItem('oneday-user', JSON.stringify(user));
 };
 
-export const logout = () => {
+export const logout = async () => {
   localStorage.removeItem('oneday-user');
-  localStorage.removeItem('oneday-token');
-  fetch('/api/auth/logout', { method: 'POST' });
+  // Server will clear the httpOnly cookie
+  await fetch('/api/auth/logout', { method: 'POST' });
 };
 
 export const register = async (email: string, password: string, name: string) => {
@@ -36,7 +30,7 @@ export const register = async (email: string, password: string, name: string) =>
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error);
-  setToken(data.token);
+  // Token is set as httpOnly cookie by server, we only store user info for display
   setUser(data.user);
   return data;
 };
@@ -49,18 +43,14 @@ export const login = async (email: string, password: string) => {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error);
-  setToken(data.token);
+  // Token is set as httpOnly cookie by server, we only store user info for display
   setUser(data.user);
   return data;
 };
 
 export const verifyToken = async () => {
-  const token = getToken();
-  if (!token) return null;
-  
-  const res = await fetch('/api/auth/verify', {
-    headers: { 'Authorization': `Bearer ${token}` },
-  });
+  // Cookie is automatically sent by browser
+  const res = await fetch('/api/auth/verify');
   if (!res.ok) {
     logout();
     return null;

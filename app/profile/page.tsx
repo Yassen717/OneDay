@@ -37,12 +37,8 @@ export default function ProfilePage() {
 
     const loadNotes = async () => {
       try {
-        const token = localStorage.getItem('oneday-token');
-        if (!token) return;
-
-        const res = await fetch('/api/notes', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // Cookie is sent automatically by the browser
+        const res = await fetch('/api/notes');
 
         if (!res.ok) return;
 

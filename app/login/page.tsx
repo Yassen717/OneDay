@@ -1,18 +1,37 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthForm } from '@/components/auth-form';
-import { getToken } from '@/lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (getToken()) {
-      router.push('/');
-    }
+    // Check if already authenticated via cookie
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/verify');
+        if (res.ok) {
+          router.push('/');
+        }
+      } catch {
+        // Not authenticated, stay on login page
+      } finally {
+        setChecking(false);
+      }
+    };
+    checkAuth();
   }, [router]);
+
+  if (checking) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
+        <div className="text-slate-600 dark:text-slate-400">Loading...</div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">

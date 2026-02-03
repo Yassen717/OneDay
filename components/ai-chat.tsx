@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { MessageCircle, X, Send, Plus, Trash2, Menu, Sparkles, ChevronDown, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getToken } from "@/lib/auth";
 
 interface Message {
   id?: string;
@@ -68,12 +67,8 @@ export function AIChat() {
 
   const fetchConversations = async () => {
     try {
-      const token = getToken();
-      if (!token) return;
-
-      const res = await fetch("/api/chat", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // Cookie is sent automatically by the browser
+      const res = await fetch("/api/chat");
 
       if (!res.ok) return;
       const data = await res.json();
@@ -90,12 +85,8 @@ export function AIChat() {
 
   const fetchMessages = async (conversationId: string) => {
     try {
-      const token = getToken();
-      if (!token) return;
-
-      const res = await fetch(`/api/chat?conversationId=${conversationId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // Cookie is sent automatically by the browser
+      const res = await fetch(`/api/chat?conversationId=${conversationId}`);
 
       if (!res.ok) return;
       const data = await res.json();
@@ -115,10 +106,9 @@ export function AIChat() {
   const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const token = getToken();
+      // Cookie is sent automatically by the browser
       const res = await fetch(`/api/chat?conversationId=${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        method: "DELETE"
       });
 
       if (res.ok) {
@@ -143,12 +133,11 @@ export function AIChat() {
     setIsLoading(true);
 
     try {
-      const token = getToken();
+      // Cookie is sent automatically by the browser
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ 
           message: userMessage,
