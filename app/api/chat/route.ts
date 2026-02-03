@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
-
-const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-key";
+import { validateUserFromRequest } from "@/lib/auth";
 
 type NoteAction = {
   action: "list" | "read" | "update" | "delete" | "create" | "none";
@@ -119,19 +117,6 @@ async function detectNoteAction(
   }
 }
 
-function getUserFromToken(request: NextRequest) {
-  // Read token from httpOnly cookie (secure) instead of Authorization header
-  const token = request.cookies.get('token')?.value;
-  if (!token) return null;
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string };
-    if (!decoded.userId) return null;
-    return { userId: decoded.userId };
-  } catch {
-    return null;
-  }
-}
-
 function extractNumberedItems(text: string): string[] {
   return text
     .split("\n")
@@ -156,16 +141,9 @@ function getLatestAssistantList(history: Array<{ role: string; content: string }
 // GET: List all conversations or get messages for a specific conversation
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromToken(request);
+    const user = await validateUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userExists = await prisma.user.findUnique({
-      where: { id: user.userId }
-    });
-    if (!userExists) {
-      return NextResponse.json({ error: "User not found. Please log in again." }, { status: 401 });
     }
 
     const url = new URL(request.url);
@@ -204,16 +182,9 @@ export async function GET(request: NextRequest) {
 // POST: Send a message to a conversation
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromToken(request);
+    const user = await validateUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userExists = await prisma.user.findUnique({
-      where: { id: user.userId }
-    });
-    if (!userExists) {
-      return NextResponse.json({ error: "User not found. Please log in again." }, { status: 401 });
     }
 
     const { message, conversationId } = await request.json();
@@ -622,16 +593,9 @@ export async function POST(request: NextRequest) {
 // DELETE: Delete a conversation
 export async function DELETE(request: NextRequest) {
   try {
-    const user = getUserFromToken(request);
+    const user = await validateUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const userExists = await prisma.user.findUnique({
-      where: { id: user.userId }
-    });
-    if (!userExists) {
-      return NextResponse.json({ error: "User not found. Please log in again." }, { status: 401 });
     }
 
     const url = new URL(request.url);

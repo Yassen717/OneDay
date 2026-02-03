@@ -1,25 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
+import { validateUserFromRequest } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    // Read token from httpOnly cookie (secure) instead of Authorization header
-    const token = request.cookies.get('token')?.value;
+    const user = await validateUserFromRequest(request);
 
-    if (!token) {
-      return NextResponse.json({ error: 'No token provided' }, { status: 401 });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string; email: string; name: string };
-    
-    if (!decoded.userId) {
-      return NextResponse.json({ error: 'Invalid token - please login again' }, { status: 401 });
+    if (!user) {
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
     }
     
-    return NextResponse.json({ user: { email: decoded.email, name: decoded.name } });
+    return NextResponse.json({ user: { email: user.email, name: user.name } });
   } catch (error) {
-    return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
   }
 }

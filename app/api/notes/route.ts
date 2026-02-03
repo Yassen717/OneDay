@@ -1,40 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
-
-function getUserFromToken(request: NextRequest) {
-  // Read token from httpOnly cookie (secure) instead of Authorization header
-  const token = request.cookies.get('token')?.value;
-  if (!token) return null;
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string; email?: string };
-    if (!decoded.userId) {
-      // Old token without userId - reject it
-      return null;
-    }
-    return { userId: decoded.userId };
-  } catch {
-    return null;
-  }
-}
+import { validateUserFromRequest } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromToken(request);
+    const user = await validateUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // IMPORTANT: Verify user exists in database
-    // This prevents foreign key constraint errors after migrations reset the database
-    // Solution: User must log out and log in again if this check fails
-    const userExists = await prisma.user.findUnique({
-      where: { id: user.userId }
-    });
-    if (!userExists) {
-      return NextResponse.json({ error: 'User not found. Please log in again.' }, { status: 401 });
     }
 
     const notes = await prisma.note.findMany({
@@ -51,19 +23,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromToken(request);
+    const user = await validateUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // IMPORTANT: Verify user exists in database
-    // This prevents foreign key constraint errors after migrations reset the database
-    // Solution: User must log out and log in again if this check fails
-    const userExists = await prisma.user.findUnique({
-      where: { id: user.userId }
-    });
-    if (!userExists) {
-      return NextResponse.json({ error: 'User not found. Please log in again.' }, { status: 401 });
     }
 
     const { text, color } = await request.json();
@@ -81,7 +43,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const user = getUserFromToken(request);
+    const user = await validateUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -107,7 +69,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const user = getUserFromToken(request);
+    const user = await validateUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
