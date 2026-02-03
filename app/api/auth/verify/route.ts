@@ -5,7 +5,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    // Read token from httpOnly cookie (secure) instead of Authorization header
+    const token = request.cookies.get('token')?.value;
 
     if (!token) {
       return NextResponse.json({ error: 'No token provided' }, { status: 401 });

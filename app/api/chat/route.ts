@@ -120,7 +120,8 @@ async function detectNoteAction(
 }
 
 function getUserFromToken(request: NextRequest) {
-  const token = request.headers.get("authorization")?.replace("Bearer ", "");
+  // Read token from httpOnly cookie (secure) instead of Authorization header
+  const token = request.cookies.get('token')?.value;
   if (!token) return null;
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string };
@@ -238,7 +239,7 @@ export async function POST(request: NextRequest) {
     }) : [];
 
     const contextMessages = history.map(msg => ({
-      role: msg.role === "ai" ? "assistant" : msg.role,
+      role: (msg.role === "ai" ? "assistant" : msg.role) as "user" | "assistant",
       content: msg.content
     }));
 

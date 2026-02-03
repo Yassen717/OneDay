@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma';
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
 
 function getUserFromToken(request: NextRequest) {
-  const token = request.headers.get('authorization')?.replace('Bearer ', '');
+  // Read token from httpOnly cookie (secure) instead of Authorization header
+  const token = request.cookies.get('token')?.value;
   if (!token) return null;
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string; email?: string };
