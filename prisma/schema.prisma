@@ -3,20 +3,18 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// IMPORTANT: Database Location & Migration Notes
-// ============================================
-// 1. DATABASE_URL should point to: "file:./prisma/dev.db"
-// 2. When running "npx prisma migrate dev", it may RESET and DELETE all data
-// 3. After migrations reset the database:
-//    - All users are deleted
-//    - JWT tokens become invalid (reference non-existent users)
-//    - You'll get "Foreign key constraint violated" errors
-//    - SOLUTION: Log out and log in again to create a new user
-// 4. For development without data loss, prefer "npx prisma db push"
+// IMPORTANT: Database Setup Notes
+// ================================
+// 1. DATABASE_URL should be a PostgreSQL connection string:
+//    - Local: "postgresql://user:password@localhost:5432/oneday"
+//    - Neon: "postgresql://user:pass@ep-xxx.region.aws.neon.tech/neondb?sslmode=require"
+//    - Supabase: "postgresql://postgres:password@db.xxx.supabase.co:5432/postgres"
+// 2. Run "npx prisma migrate deploy" for production
+// 3. Run "npx prisma db push" for quick development syncs
 
 model User {
   id        String   @id @default(cuid())

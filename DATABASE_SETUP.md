@@ -1,39 +1,52 @@
 # Database Setup
 
-This project uses **SQLite** for local development.
+This project uses **PostgreSQL** for both development and production.
+
+## Database Providers
+
+You can use any PostgreSQL provider:
+
+| Provider | Free Tier | Best For |
+|----------|-----------|----------|
+| [Neon](https://neon.tech) | 512 MB | Serverless, Vercel integration |
+| [Supabase](https://supabase.com) | 500 MB | Full backend suite |
+| [Vercel Postgres](https://vercel.com/storage/postgres) | 256 MB | Vercel deployments |
+| Local PostgreSQL | N/A | Local development |
 
 ## Setup Steps
 
 1. Install dependencies:
 ```bash
-npm install
-# or
 pnpm install
 ```
 
 2. Setup Environment Variables:
-   - Copy `.env.example` to `.env` (if it exists) or create `.env`
-   - Ensure your `.env` contains:
+   - Create a `.env` file with:
      ```
-     DATABASE_URL="file:./prisma/dev.db"
-     JWT_SECRET="your-secret-key"
+     DATABASE_URL="postgresql://user:password@host:5432/database?sslmode=require"
+     JWT_SECRET="your-strong-random-secret-key-min-32-chars"
+     GROQ_API_KEY="your-groq-api-key"
      ```
-   - **IMPORTANT**: Database should be in `./prisma/dev.db` to match where migrations create it
+   - Replace with your actual PostgreSQL connection string from your provider
 
 3. Generate Prisma Client:
 ```bash
 npx prisma generate
 ```
 
-4. Push Database Schema:
+4. Push Database Schema (Development):
 ```bash
 npx prisma db push
 ```
-This will create the `dev.db` file in the `prisma/` folder.
 
-5. Start the dev server:
+5. Or Run Migrations (Production):
 ```bash
-npm run dev
+npx prisma migrate deploy
+```
+
+6. Start the dev server:
+```bash
+pnpm dev
 ```
 
 ## Useful Commands
@@ -43,30 +56,24 @@ npm run dev
 npx prisma studio
 ```
 
-## ⚠️ Common Issue: Foreign Key Constraint Errors
-
-### Problem
-You may see errors like:
-```
-Foreign key constraint violated: `foreign key`
-Invalid `prisma.chatConversation.create()` invocation
+- Create a new migration:
+```bash
+npx prisma migrate dev --name your_migration_name
 ```
 
-### Why This Happens
-1. **Database reset during migration**: When you run `npx prisma migrate dev`, it may reset your database and delete ALL data (including users)
-2. **JWT token still valid**: Your browser's JWT token still contains the old userId that no longer exists
-3. **Foreign key violation**: When the app tries to create data with that userId, it fails because the user doesn't exist
+## Connection String Examples
 
-### Solution
-**You must log out and log in again** to create a new user and get a new valid JWT token.
+### Neon
+```
+postgresql://username:password@ep-cool-name-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
+```
 
-Steps:
-1. Click logout in your app
-2. Register a new account OR log in with existing credentials
-3. The app will create a new user and issue a new JWT token
-4. Everything will work normally again
+### Supabase
+```
+postgresql://postgres:password@db.abcdefghijklmnop.supabase.co:5432/postgres
+```
 
-### Prevention
-- Always log out after running migrations that reset the database
-- Consider using `npx prisma db push` for development (doesn't reset data)
-- Use `npx prisma migrate dev` only when you need to create new migration files
+### Local PostgreSQL
+```
+postgresql://postgres:password@localhost:5432/oneday
+```
