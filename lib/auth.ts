@@ -13,7 +13,13 @@ export interface AuthenticatedUser {
   name: string;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is not configured');
+  }
+  return secret;
+}
 
 // SERVER-SIDE: Validate JWT token and verify user exists in database
 // This centralizes auth logic and prevents redundant checks across API routes
@@ -24,7 +30,7 @@ export async function validateUserFromRequest(request: NextRequest): Promise<Aut
     if (!token) return null;
 
     // Verify JWT signature and expiration
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string; email?: string; name?: string };
+    const decoded = jwt.verify(token, getJwtSecret()) as { userId?: string; email?: string; name?: string };
     if (!decoded.userId) {
       // Old token format without userId - reject it
       return null;

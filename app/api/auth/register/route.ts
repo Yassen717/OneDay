@@ -3,7 +3,13 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is not configured');
+  }
+  return secret;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +29,7 @@ export async function POST(request: NextRequest) {
       data: { email, password: hashedPassword, name }
     });
 
-    const token = jwt.sign({ userId: user.id, email, name }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id, email, name }, getJwtSecret(), { expiresIn: '7d' });
 
     const response = NextResponse.json({ token, user: { email, name } }, { status: 201 });
     response.cookies.set('token', token, {
