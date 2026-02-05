@@ -2,7 +2,8 @@
 
 A modern notes app with secure auth, AI-assisted note management, and a polished UI.
 
-<p align="left">
+<p align="center">
+  <a href="https://one-day-delta.vercel.app/" target="_blank"><img alt="Live Demo" src="https://img.shields.io/badge/Live%20App-Vercel-000?logo=vercel&logoColor=white"></a>
   <a href="https://nextjs.org" target="_blank"><img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs&logoColor=white"></a>
   <a href="https://react.dev" target="_blank"><img alt="React" src="https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white"></a>
   <a href="https://www.typescriptlang.org/" target="_blank"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white"></a>
@@ -13,6 +14,12 @@ A modern notes app with secure auth, AI-assisted note management, and a polished
   <a href="https://www.postgresql.org/" target="_blank"><img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-DB-4169E1?logo=postgresql&logoColor=white"></a>
   <a href="https://vercel.com/analytics" target="_blank"><img alt="Vercel Analytics" src="https://img.shields.io/badge/Vercel-Analytics-000000?logo=vercel&logoColor=white"></a>
 </p>
+
+---
+
+## 🌐 Live Demo
+
+👉 [https://one-day-delta.vercel.app/](https://one-day-delta.vercel.app/)
 
 ---
 
