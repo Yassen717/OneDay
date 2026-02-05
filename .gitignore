@@ -71,3 +71,5 @@ Thumbs.db
 # pnpm-lock.yaml
 
 /lib/generated/prisma
+.vercel
+.env*.local
